@@ -1,0 +1,12 @@
+streaming_lakehouse:
+  target: dev
+  outputs:
+    dev:
+      type: trino
+      method: none
+      user: admin
+      host: localhost
+      port: 8080
+      catalog: iceberg
+      schema: default_db
+      threads: 4
