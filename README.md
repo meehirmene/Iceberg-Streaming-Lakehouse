@@ -17,6 +17,11 @@ The platform consists of several key components:
 
 ## 🚀 Getting Started
 
+### Demo Dashboard
+
+![Dashboard Demo](assets/dashboard_demo.webp)
+*Real-time streaming dashboard built with React and Trino*
+
 ### Prerequisites
 - Docker & Docker Compose
 - Python 3.x
@@ -45,3 +50,6 @@ The dashboard will be available at `http://localhost:5173`. It features multiple
 2. Submit your Flink SQL job to start writing data into the Iceberg tables.
 3. Run `dbt run` from the `dbt_project` directory to compute aggregations.
 4. Watch the Dashboard update in real-time as background data refreshes!
+
+![Routing Demo](assets/routing_demo.webp)
+*Navigate seamlessly between the Overview, Raw Streams, and Settings pages.*
