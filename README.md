@@ -18,7 +18,9 @@ With the advent of advanced table formats like **Apache Iceberg V2**, we can now
 
 We designed a modern, open-source stack that processes these events as they arrive, handles out-of-order data, mutates lakehouse records in real-time, and serves a live React dashboard—all without a traditional database.
 
-![Architecture Diagram](./assets/architecture_diagram.png)
+
+<img width="784" height="860" alt="image" src="https://github.com/user-attachments/assets/b4d8c399-be7d-44e5-b22d-be0096914d92" />
+
 
 ## Tools and Functionality Developed
 
