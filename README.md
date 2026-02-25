@@ -1,4 +1,4 @@
-# Advanced Streaming Data Lakehouse: Ride-Hailing V2
+# Advanced Streaming Data Lakehouse: Ride-Hailing
 
 Welcome to the **Ride-Hailing Streaming Data Lakehouse** project. This repository demonstrates a production-scale streaming architecture processing live telemetry and surge pricing metrics using an open-source data stack.
 
