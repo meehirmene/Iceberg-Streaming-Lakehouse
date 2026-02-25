@@ -1,44 +1,62 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#e2e8f0', 'lineColor': '#94a3b8', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#e2e8f0'} } }%%
 graph TD
-    subgraph Ingestion
-        K(Apache Kafka)
-        P1[Python Producer: Driver Locations]
-        P2[Python Producer: Ride Requests]
-        P1 -->|Key: driver_id| K
-        P2 -->|Key: ride_id| K
+    classDef default fill:#fff,stroke:#cbd5e1,stroke-width:1px,color:#334155,rx:8px,ry:8px;
+    classDef kafka fill:#1A1A1A,stroke:#333,stroke-width:2px,color:#fff;
+    classDef python fill:#FFD43B,stroke:#306998,stroke-width:2px,color:#306998,font-weight:bold;
+    classDef flink fill:#E6522C,stroke:#B03A1A,stroke-width:2px,color:#fff;
+    classDef iceberg fill:#00A3CC,stroke:#007B99,stroke-width:2px,color:#fff;
+    classDef trino fill:#DD00A1,stroke:#A10076,stroke-width:2px,color:#fff;
+    classDef minio fill:#C83B50,stroke:#962C3C,stroke-width:2px,color:#fff;
+    classDef react fill:#61DAFB,stroke:#4BA8C1,stroke-width:2px,color:#000,font-weight:bold;
+    classDef dbt fill:#FF694B,stroke:#D64627,stroke-width:2px,color:#fff;
+    classDef subgraphStyle fill:#f8fafc,stroke:#e2e8f0,stroke-width:2px,stroke-dasharray: 5 5,rx:10px,ry:10px;
+
+    %% Ingestion Layer
+    subgraph Ingestion ["Ingestion Layer"]
+        P1["fa:fa-python Driver App Simulator<br/>(Telemtry)"]:::python
+        P2["fa:fa-python Rider App Simulator<br/>(Requests)"]:::python
+        K("fa:fa-server Apache Kafka<br/>(Event Broker)"):::kafka
+        
+        P1 -->|"driver_id keys"| K
+        P2 -->|"ride_id keys"| K
     end
 
-    subgraph Processing
-        F(Apache Flink)
-        K -->|Live Streams| F
-        F -->|Stateful Join: Match Rides to Drivers| F
-        F -->|Hopping Window: Surge Pricing| F
+    %% Stream Processing Layer
+    subgraph Process ["Stream Processing Layer"]
+        F("fa:fa-random Apache Flink SQL<br/>(Live Processing)"):::flink
+        K -->|"Live Topics"| F
+        
+        %% Internal Flink steps for illustration
+        J["fa:fa-compress Stateful Interval Join<br/>(Match Ride to Driver)"]:::flink
+        W["fa:fa-clock-o Hopping Windows<br/>(Surge Calculation)"]:::flink
+        F -.-> J
+        F -.-> W
     end
 
-    subgraph Storage & Metadata
-        I[Apache Iceberg V2]
-        M[(MinIO / S3 Object Storage)]
-        R[Iceberg REST Catalog]
-        F -->|Upserts & Append| I
-        I --> R
-        I --> M
+    %% Lakehouse Storage Layer
+    subgraph Storage ["Unified Lakehouse Storage"]
+        I["fa:fa-database Apache Iceberg V2<br/>(Format & Live Upserts)"]:::iceberg
+        R["fa:fa-table REST Catalog<br/>(Metadata)"]:::iceberg
+        M[("fa:fa-hdd-o MinIO S3<br/>(Object Storage)")]:::minio
+        
+        J -->|"Real-time State Upserts"| I
+        W -->|"Window Aggregations"| I
+        
+        I <--> R
+        I <--> M
     end
 
-    subgraph Query & Serving
-        T(Trino)
+    %% Query & Analytics Layer
+    subgraph Query ["Query & Output Layer"]
+        T{"fa:fa-search Trino<br/>(MPP Query Engine)"}:::trino
+        D["fa:fa-cube dbt<br/>(Transformations)"]:::dbt
+        UI["fa:fa-desktop React Dashboard<br/>(Live View)"]:::react
+        
         R -.-> T
         M -.-> T
+        
+        T -->|"REST Async Polling"| UI
+        T -->|"Write-Audit-Publish"| D
     end
 
-    subgraph Analytics & Presentation
-        D(dbt)
-        UI[React / Vite Live Dashboard]
-        T --> D
-        T --> UI
-    end
-
-    style K fill:#231f20,color:#fff
-    style F fill:#e6522c,color:#fff
-    style I fill:#00a3cc,color:#fff
-    style T fill:#dd00a1,color:#fff
-    style M fill:#c83b50,color:#fff
-    style UI fill:#61dafb,color:#000
+    class Ingestion,Process,Storage,Query subgraphStyle;
