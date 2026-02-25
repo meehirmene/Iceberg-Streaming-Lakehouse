@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: daily_driver_payouts_staging
+    description: "Staging table for driver payouts, built via Write-Audit-Publish pattern."
+    columns:
+      - name: driver_id
+        description: "The unique identifier of the driver."
+        tests:
+          - not_null
+      - name: payout_date
+        description: "The date of the payout."
+        tests:
+          - not_null
+      - name: total_payout
+        description: "Calculated payout for the driver after commission."
+        tests:
+          - not_null
+      # Composite primary key test to ensure a driver only gets one payout record per day
+    tests:
+      - unique:
+          column_name: "driver_id || '-' || cast(payout_date as varchar)"
+
+sources:
+  - name: ride_hailing
+    schema: ride_hailing
+    tables:
+      - name: iceberg_ride_events
+        description: "Raw events containing ride lifecycle."
+        columns:
+          - name: ride_id
+            tests:
+              - unique
+              - not_null
+          - name: status
+            tests:
+              - accepted_values:
+                  values: ['REQUESTED', 'ACCEPTED', 'COMPLETED']
