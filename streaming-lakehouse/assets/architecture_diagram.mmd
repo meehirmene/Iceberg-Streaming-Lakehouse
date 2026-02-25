@@ -1,0 +1,44 @@
+graph TD
+    subgraph Ingestion
+        K(Apache Kafka)
+        P1[Python Producer: Driver Locations]
+        P2[Python Producer: Ride Requests]
+        P1 -->|Key: driver_id| K
+        P2 -->|Key: ride_id| K
+    end
+
+    subgraph Processing
+        F(Apache Flink)
+        K -->|Live Streams| F
+        F -->|Stateful Join: Match Rides to Drivers| F
+        F -->|Hopping Window: Surge Pricing| F
+    end
+
+    subgraph Storage & Metadata
+        I[Apache Iceberg V2]
+        M[(MinIO / S3 Object Storage)]
+        R[Iceberg REST Catalog]
+        F -->|Upserts & Append| I
+        I --> R
+        I --> M
+    end
+
+    subgraph Query & Serving
+        T(Trino)
+        R -.-> T
+        M -.-> T
+    end
+
+    subgraph Analytics & Presentation
+        D(dbt)
+        UI[React / Vite Live Dashboard]
+        T --> D
+        T --> UI
+    end
+
+    style K fill:#231f20,color:#fff
+    style F fill:#e6522c,color:#fff
+    style I fill:#00a3cc,color:#fff
+    style T fill:#dd00a1,color:#fff
+    style M fill:#c83b50,color:#fff
+    style UI fill:#61dafb,color:#000
