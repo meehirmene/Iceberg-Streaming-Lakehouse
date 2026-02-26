@@ -55,6 +55,11 @@ Finally, we brought the data to life using a modern **Vite + React** web applica
 - The UI polls Trino via an asynchronous REST client.
 - It translates Flink's 10-second sliding windows into live-updating KPI cards and a real-time tracking feed of active ride states.
 
+#### E-Commerce Funnel Demo
+We also built a secondary pipeline for **Real-Time E-Commerce Cart Abandonment** tracking. It processes high-volume `add_to_cart` and `checkout` events, computing live abandonment rates and recent revenue streams on-the-fly via Flink and Iceberg.
+
+![Live E-Commerce Funnel](file:///Users/sindhujarao/.gemini/antigravity/brain/54e1540c-36d5-490c-8a2e-d135dd139f7f/ecommerce_funnel_dashboard_1772140343968.webp)
+
 ## Getting Started
 
 ### Prerequisites
