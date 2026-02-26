@@ -4,6 +4,8 @@ import { Database, LayoutDashboard, Settings as SettingsIcon, Activity } from 'l
 import Dashboard from './components/Dashboard'
 import RawStreams from './components/RawStreams'
 import Settings from './components/Settings'
+import EcommerceDashboard from './components/EcommerceDashboard'
+import { ShoppingCart } from 'lucide-react'
 
 function App() {
   const location = useLocation();
@@ -11,6 +13,7 @@ function App() {
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/': return 'Dashboard';
+      case '/ecommerce': return 'Ecommerce Funnel';
       case '/streams': return 'Raw Streams';
       case '/settings': return 'Settings';
       default: return '';
@@ -48,6 +51,9 @@ function App() {
           <NavLink to="/" style={navLinkStyle}>
             {({ isActive }) => <><LayoutDashboard size={20} color={isActive ? "var(--accent-blue)" : "currentColor"} /> Overview</>}
           </NavLink>
+          <NavLink to="/ecommerce" style={navLinkStyle}>
+            {({ isActive }) => <><ShoppingCart size={20} color={isActive ? "var(--accent-blue)" : "currentColor"} /> Ecommerce</>}
+          </NavLink>
           <NavLink to="/streams" style={navLinkStyle}>
             {({ isActive }) => <><Activity size={20} color={isActive ? "var(--accent-blue)" : "currentColor"} /> Raw Streams</>}
           </NavLink>
@@ -78,6 +84,7 @@ function App() {
         <div className="content-area">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/ecommerce" element={<EcommerceDashboard />} />
             <Route path="/streams" element={<RawStreams />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
