@@ -101,6 +101,12 @@ Navigate to `http://localhost:5173` to see the live metrics and stream data.
 
 ### Demo Dashboard
 
+Ecommerce : 
+
+![7A2FD3DE-DCD8-43A3-A7F5-FDF69359792A](https://github.com/user-attachments/assets/6b45f27d-64ae-4565-b785-786dfa985d6e)
+
+Ride share :
+
 ![Dashboard Demo](assets/dashboard_demo.webp)
 *Real-time streaming dashboard built with React and Trino*
 
