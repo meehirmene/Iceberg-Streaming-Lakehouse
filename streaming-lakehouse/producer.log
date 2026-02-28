@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/sindhujarao/Documents/iceberg/streaming-lakehouse/producer/ride_hailing_producer.py", line 6, in <module>
+    from kafka import KafkaProducer
+ModuleNotFoundError: No module named 'kafka'

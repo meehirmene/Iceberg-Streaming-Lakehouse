@@ -1,62 +1,118 @@
-# Building a Modern Streaming Lakehouse: The Ride-Hailing Use Case
+# Build a Streaming Lakehouse on a Laptop with Flink, Iceberg, Trino, and React
 
-The data engineering landscape is undergoing a massive shift. The traditional boundaries between "streaming" (for low-latency operations) and "batch" (for historical analytics) are dissolving. Enter the **Streaming Data Lakehouse**—an architecture that delivers real-time analytical capabilities directly on top of open table formats like Apache Iceberg, without the need for bespoke, expensive operational databases.
+I’m seeing a massive shift in how companies approach real-time data. The traditional boundaries between "streaming" (for low-latency operations) and "batch" (for historical analytics) are dissolving into unified **Streaming Data Lakehouses**. These architectures deliver real-time analytical capabilities directly on top of open table formats without the need for bespoke, expensive operational NoSQL databases.
 
-In this post, we'll dive deep into a complex, real-world use case: **Ride-Hailing Surge Pricing and Telemetry Tracking**, and explore how we built a complete end-to-end streaming lakehouse to solve it.
+I’ve wanted to build a hands-on, end-to-end streaming lakehouse on my laptop for a while. Recently, I sat down and built this comprehensive local data system using Apache Kafka, Flink, Iceberg, Trino, dbt, and a React frontend.
 
-## The Use Case: Ride-Hailing Telemetry & Surge Pricing
+But I didn't just build it manually—I orchestrated the entire development using **Agentic AI Workflows**, which acted as my highly-capable data engineering assistant.
 
-Imagine a ride-hailing platform like Uber or Lyft. At any given second, thousands of drivers are pinging their GPS locations, and thousands of riders are requesting rides. To operate efficiently, the platform must process these streams in real-time to achieve two critical goals:
-1. **Ride Matching & State Tracking**: Instantly match a rider's request with a nearby driver and track the live state of that ride (Requested -> Accepted -> Completed).
-2. **Surge Pricing Calculation**: Dynamically calculate pricing multipliers continuously based on the real-time supply of drivers versus the demand from riders in specific geographic zones.
+Here is my experience building a dual-use-case streaming system on a laptop. All the code for this system is designed to run via Docker Compose.
 
-Historically, solving this required a complex labyrinth of Kafka streams, NoSQL databases (like Cassandra or DynamoDB) for state tracking, and separate data warehouses for downstream analytics.
+*Note: This system runs 7+ containers including a Flink cluster and Trino JVM. Make sure to allocate at least 12-16GB of RAM to Docker Desktop so you don't overwhelm your laptop!*
 
-With the advent of advanced table formats like **Apache Iceberg V2**, we can now process these streams and mutate records directly in the data lake, achieving sub-second latency while keeping everything in a unified, open format.
+---
 
-## Architectural Overview
+## What are we going to build?
 
-We designed a modern, open-source stack that processes these events as they arrive, handles out-of-order data, mutates lakehouse records in real-time, and serves a live React dashboard—all without a traditional database.
+We are setting up a state-of-the-art streaming lakehouse with:
+*   [**MinIO**](https://min.io/): S3-compatible backend storage.
+*   [**Apache Iceberg**](https://iceberg.apache.org/): The open table format (specifically V2 for row-level mutations).
+*   [**Iceberg REST Catalog**](https://github.com/tabular-io/iceberg-rest-image) (backed by Postgres): For high-performance metadata management.
+*   [**Apache Flink**](https://flink.apache.org/): The powerful stream processor for stateful aggregations.
+*   [**Apache Kafka**](https://kafka.apache.org/): The nervous system for incoming telemetry.
+*   [**Trino**](https://trino.io/): The massively parallel SQL query engine.
+*   [**dbt**](https://www.getdbt.com/): For downstream analytical transformations.
+*   **Vite + React**: A modern frontend to visualize the live data.
 
-![Architecture Diagram](assets/architecture_diagram.png)
+### The Dual Use-Cases
+Instead of static sample data, I wanted simulated, chaotic real-world streams. I built two pipelines:
+1.  **Ride-Hailing Telemetry**: Simulating Uber/Lyft. Thousands of driver and rider pings flowing in. Flink performs **Stateful Interval Joins** to match rides, and **Sliding (Hopping) Windows** to calculate live Surge Pricing multipliers.
+2.  **E-Commerce Funnel**: Tracking live user sessions, executing windowed aggregations to calculate real-time **Cart Abandonment Rates** and revenue.
 
-## Tools and Functionality Developed
+---
 
-Let's break down the role of each component and the specific functionalities we developed to conquer this use case.
+## Supercharging Development with Agentic Skills
 
-### 1. Ingestion: Apache Kafka & Python Producers
-To simulate the high-throughput, chaotic nature of mobile telemetry, we built Python producers that continuously push `driver_locations` and `ride_requests` into **Apache Kafka**.
-- **Key-Based Routing**: Crucially, we route messages using `driver_id` and `ride_id` as Kafka keys. This ensures that state transitions for a single ride arrive at the stream processor in strictly chronological order.
+Building a complex distributed system locally is notoriously tedious (dependency hell, configuration mismatches, JVM tuning). To solve this, I codified standard operations into **Agentic Skills**—custom AI workflows that an AI coding agent can securely execute on my behalf.
 
-### 2. Stream Processing: Apache Flink SQL
-**Apache Flink** is the powerful engine executing our continuous queries. We utilized Flink SQL to handle the heavy lifting:
-- **Event-Time Watermarking**: Mobile networks are notoriously unreliable. Flink uses a 5-second watermark (`WATERMARK FOR event_timestamp AS event_timestamp - INTERVAL '5' SECOND`) which allows the system to wait for and gracefully process out-of-order "late" pings without stalling the pipeline.
-- **Stateful Interval Joins**: To match riders and drivers, Flink holds streams in state and executes an `INTERVAL JOIN`. It looks for an 'ACCEPTED' ride request and an 'ON_TRIP' driver location occurring within 5 minutes of each other, seamlessly matching supply to demand.
-- **Sliding (Hopping) Windows**: Flink calculates the "Surge Multiplier" continuously by aggregating the distinct counts of active riders and available drivers using a **60-second lookback window that slides forward every 10 seconds**.
+Instead of writing boilerplate commands, I simply asked the agent to execute predefined Markdown slash-commands:
 
-### 3. Unified Storage: Apache Iceberg V2
-This is where the lakehouse magic happens. Traditionally, data lakes were append-only.
-- **V2 Format & Live Upserts**: We configured our Iceberg tables with `'format-version'='2'` and `'write.upsert.enabled'='true'`. Flink directly issues **Equality Deletes** to the lake. When a ride goes from 'REQUESTED' to 'COMPLETED', Iceberg updates the existing row in place in real-time.
-- **Advanced Features Implemented**:
-  - **Partition Evolution**: We demonstrated shifting a table from daily to hourly partitioning seamlessly without requiring massive rewrites of historical data.
-  - **Compaction**: Flink checkpointing every 10s creates thousands of tiny files ("the small file problem"). We automated `ALTER TABLE ... EXECUTE OPTIMIZE` commands to periodically compact these files into optimized blocks behind the scenes.
-  - **Time Travel**: Because Iceberg tracks snapshots, we configured exact time-travel queries to audit exactly what the surge pricing multiplier was at any given millisecond in the past.
+*   `/manage_local_lakehouse`: Safely bootstraps or tears down the Docker infrastructure.
+*   `/simulate_telemetry_data`: Starts up the chaotic Python Kafka producers in the background.
+*   `/deploy_flink_stream`: Submits the complex Flink SQL jobs to the `jobmanager`.
+*   `/optimize_iceberg_tables`: Periodically fires Trino `EXECUTE OPTIMIZE` commands to solve the classic Iceberg "small files" problem caused by frequent Flink checkpointing.
+*   `/run_dbt_transformations`: Executes analytics models and tests.
+*   `/generate_usecase_dashboard`: Instructs the agent to dynamically build a beautiful React dashboard for whatever use-case we are currently streaming.
 
-### 4. Query Engine: Trino
-**Trino** acts as the high-concurrency, massively parallel SQL query engine sitting directly over the Iceberg metadata and MinIO object storage. It serves as the single source of truth, providing rapid query responses to our visualization layer without caching data externally.
+Let's dive into the core components that these agents helped me build.
 
-### 5. Analytics & Quality: dbt (Data Build Tool)
-We integrated **dbt** to manage the analytics engineering workflow on top of the raw lakehouse tables:
-- **Custom Macros & Tests**: We built Jinja macros to calculate driver payouts dynamically based on surge factors.
-- **WAP Pattern**: Integrated strict data quality tests (e.g., asserting unique ride IDs and acceptable state values) using a Write-Audit-Publish pattern to ensure downtown analytics tables are pristine.
+---
 
-### 6. Serving: React Live Dashboard
-Finally, we brought the data to life using a modern **Vite + React** web application.
-- The UI polls Trino via an asynchronous REST client.
-- It translates Flink's 10-second sliding windows into live-updating KPI cards and a real-time tracking feed of active ride states.
+## The Storage Layer: MinIO & REST Catalog
+
+The foundation of the lakehouse is object storage. The `docker-compose.yml` spins up a MinIO container (`localhost:9000`) and provisions a `lakehouse` bucket. 
+
+To manage Iceberg metadata concurrently, instead of a Hive Metastore, I opted for the modern **Iceberg REST Catalog**, backed by a lightweight PostgreSQL database. Trino and Flink are both configured to point to this REST API (`http://iceberg-rest:8181`), completely decoupling storage from compute and metadata.
+
+## The Stream Processor: Flink + Kafka
+
+This is where the magic happens. Python producers (`ecommerce_producer.py` and `ride_hailing_producer.py`) continuously pelt Kafka with JSON events. 
+
+Flink consumes these streams. Because mobile networks are unreliable, we use **Event-Time Watermarking** (`WATERMARK FOR event_timestamp AS event_timestamp - INTERVAL '5' SECOND`) so Flink can gracefully handle out-of-order data.
+
+Here is a snippet of the Flink SQL used to calculate Live Cart Metrics. We use a **Hopping Window** that looks back 1 minute, but slides forward every 10 seconds, constantly updating the abandonment rate:
+
+```sql
+-- Insert aggregated metrics using a Sliding (Hopping) Window
+INSERT INTO iceberg.ecommerce.live_cart_metrics
+SELECT
+    window_start,
+    window_end,
+    SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END) AS total_adds,
+    SUM(CASE WHEN event_type = 'checkout' THEN 1 ELSE 0 END) AS total_checkouts,
+    CAST(SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END) - SUM(CASE WHEN event_type = 'checkout' THEN 1 ELSE 0 END) AS DOUBLE) / 
+    NULLIF(SUM(CASE WHEN event_type = 'add_to_cart' THEN 1 ELSE 0 END), 0) AS abandonment_rate,
+    SUM(CASE WHEN event_type = 'checkout' THEN price ELSE 0 END) AS recent_revenue
+FROM TABLE(
+    HOP(TABLE ecommerce_kafka_source, DESCRIPTOR(event_timestamp), INTERVAL '10' SECONDS, INTERVAL '1' MINUTES)
+)
+```
+
+**The Iceberg V2 Magic:** The sinks for these queries are Iceberg tables configured with `'format-version'='2'` and `'write.upsert.enabled'='true'`. Flink directly issues **Equality Deletes** to the lakehouse. When a sliding window updates, or a ride goes from `REQUESTED` to `ACCEPTED`, Iceberg updates the existing row in place in real-time. No NoSQL database required!
+
+## The Query Engine: Trino
+
+Trino sits directly over the Iceberg metadata. We configured the Trino catalog `iceberg.properties` to connect to the REST catalog and MinIO.
+
+```properties
+connector.name=iceberg
+iceberg.catalog.type=rest
+iceberg.rest-catalog.uri=http://iceberg-rest:8181
+s3.endpoint=http://minio:9000
+s3.region=us-east-1
+s3.path-style-access=true
+```
+
+Trino allows us to perform massive parallel queries. It serves as the single source of truth for both our BI tools (dbt) and our live-updating frontend.
+
+## The Transformation Layer: dbt
+
+For downstream analytics (like calculating daily driver payouts or executive revenue reports), we utilize **dbt**. 
+
+Running our `/run_dbt_transformations` skill executes models against the Trino engine, applying Write-Audit-Publish patterns to ensure the raw streams are filtered, sanitized, and aggregated accurately for the business layer.
+
+## The Live Frontend: Vite & React
+
+Finally, we used the `/generate_usecase_dashboard` skill to construct a modern React application.
+
+Instead of a complex backend, the React app utilizes a lightweight Trino client snippet to poll the Iceberg tables every few seconds. Because Flink is constantly mutating the Iceberg V2 tables in the background, the UI instantly reflects live surges, cart abandonments, and raw event feeds without any intermediate caching layer like Redis or Postgres.
+
+![Ecommerce Full Demo](file:///Users/sindhujarao/.gemini/antigravity/brain/54e1540c-36d5-490c-8a2e-d135dd139f7f/ecommerce_funnel_dashboard_1772140343968.webp)
 
 ## Conclusion
 
-By unifying streaming computation (Flink) with transactional table formats (Iceberg V2) and an MPP query engine (Trino), we built a system that matches the operational low-latency of a NoSQL database with the massive analytical scale of a data warehouse.
+Building a streaming lakehouse locally allows developers to grasp the immense power of Iceberg V2 and Flink SQL without racking up cloud bills.
 
-The "Streaming Lakehouse" isn't just a buzzword; it's a profound simplification of the data stack, allowing organizations to act on live telemetry instantly while simultaneously providing rich, historical analytics from a single, unified storage layer.
+However, the real star of the show was the **agentic workflow integration**. By wrapping complex data engineering routines (like deploying streams, tuning JVM limits, and compacting data files) into semantic slash-commands, the AI seamlessly managed the infrastructure, allowing me to focus on the architecture and SQL logic.
+
+We've moved from "batch vs streaming" constraints directly into real-time, self-managing data ecosystems.
