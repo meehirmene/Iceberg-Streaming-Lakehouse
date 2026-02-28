@@ -53,14 +53,31 @@ Let's dive into the core components that these agents helped me build.
 ## The Storage Layer: MinIO & REST Catalog
 
 <p align="center">
-  <img src="https://min.io/resources/img/logo/MINIO_wordmark.png" height="50"/>
+  <img src="https://avatars.githubusercontent.com/u/679727?s=200&v=4" height="50"/>
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://iceberg.apache.org/img/Iceberg-logo.png" height="50"/>
+  <img src="https://avatars.githubusercontent.com/u/39818167?s=200&v=4" height="50"/>
 </p>
 
 The foundation of the lakehouse is object storage. The `docker-compose.yml` spins up a MinIO container (`localhost:9000`) and provisions a `lakehouse` bucket. 
 
 To manage Iceberg metadata concurrently, instead of a Hive Metastore, I opted for the modern **Iceberg REST Catalog**, backed by a lightweight PostgreSQL database. Trino and Flink are both configured to point to this REST API (`http://iceberg-rest:8181`), completely decoupling storage from compute and metadata.
+
+Here is an example of how we define the Iceberg V2 tables directly via Flink SQL, enabling real-time upserts directly to the MinIO buckets:
+
+```sql
+CREATE TABLE IF NOT EXISTS iceberg.ecommerce.live_cart_metrics (
+    `window_start` TIMESTAMP(3),
+    `window_end` TIMESTAMP(3),
+    `total_adds` BIGINT,
+    `total_checkouts` BIGINT,
+    `abandonment_rate` DOUBLE,
+    `recent_revenue` DOUBLE,
+    PRIMARY KEY (`window_end`) NOT ENFORCED
+) WITH (
+    'format-version'='2',
+    'write.upsert.enabled'='true'
+);
+```
 
 ## The Stream Processor: Flink + Kafka
 
@@ -97,7 +114,7 @@ FROM TABLE(
 ## The Query Engine: Trino
 
 <p align="center">
-  <img src="https://trino.io/assets/images/logo_primary.png" height="50"/>
+  <img src="https://avatars.githubusercontent.com/u/76495532?s=200&v=4" height="50"/>
 </p>
 
 Trino sits directly over the Iceberg metadata. We configured the Trino catalog `iceberg.properties` to connect to the REST catalog and MinIO.
@@ -111,27 +128,76 @@ s3.region=us-east-1
 s3.path-style-access=true
 ```
 
-Trino allows us to perform massive parallel queries. It serves as the single source of truth for both our BI tools (dbt) and our live-updating frontend.
+Trino allows us to perform massive parallel queries. It serves as the single source of truth for both our BI tools (dbt) and our live-updating frontend. 
+
+Crucially, because Flink checkpointing creates thousands of tiny data files every minute, we use Trino to run massive, concurrent table optimizations to rewrite and merge those small files automatically:
+
+```sql
+-- Iceberg Table Compaction executed via Trino
+ALTER TABLE iceberg.ride_hailing.iceberg_surge_pricing EXECUTE optimize;
+ALTER TABLE iceberg.ride_hailing.iceberg_ride_events EXECUTE optimize;
+```
 
 ## The Transformation Layer: dbt
 
 <p align="center">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Dbt-logo.svg/512px-Dbt-logo.svg.png" height="50"/>
+  <img src="https://avatars.githubusercontent.com/u/17698089?s=200&v=4" height="50"/>
 </p>
 
 For downstream analytics (like calculating daily driver payouts or executive revenue reports), we utilize **dbt**. 
 
-Running our `/run_dbt_transformations` skill executes models against the Trino engine, applying Write-Audit-Publish patterns to ensure the raw streams are filtered, sanitized, and aggregated accurately for the business layer.
+Running our `/run_dbt_transformations` skill executes models against the Trino engine, applying Write-Audit-Publish patterns to ensure the raw streams are filtered, sanitized, and aggregated accurately for the business layer. 
+
+Here is how we use a dbt model to join the raw, completed rides against the real-time calculated surge multiper to determine daily driver payouts:
+
+```sql
+-- Join rides with the surge multiplier active at the time of completion
+WITH rides_with_surge AS (
+    SELECT 
+        r.ride_id,
+        r.driver_id,
+        CAST(r.updated_at AS DATE) AS payout_date,
+        COALESCE(s.surge_multiplier, 1.0) AS applied_surge
+    FROM completed_rides r
+    LEFT JOIN surge_data s
+    ON r.updated_at BETWEEN s.window_start AND s.window_end
+)
+SELECT 
+    driver_id,
+    payout_date,
+    COUNT(ride_id) AS total_rides_completed,
+    SUM( {{ calculate_driver_payout(10.0, 'applied_surge') }} ) AS total_payout
+FROM rides_with_surge
+GROUP BY 1, 2
+```
 
 ## The Live Frontend: Vite & React
 
 <p align="center">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/512px-React-icon.svg.png" height="50"/>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg" height="50"/>
 </p>
 
 Finally, we used the `/generate_usecase_dashboard` skill to construct a modern React application.
 
 Instead of a complex backend, the React app utilizes a lightweight Trino client snippet to poll the Iceberg tables every few seconds. Because Flink is constantly mutating the Iceberg V2 tables in the background, the UI instantly reflects live surges, cart abandonments, and raw event feeds without any intermediate caching layer like Redis or Postgres.
+
+Here is the simple, direct query hitting Trino to power the live streaming dashboard:
+
+```javascript
+// Querying the stream-aggregated Iceberg table directly from React
+const metricsQuery = `
+  SELECT 
+    CAST(window_end AS VARCHAR) as time_str,
+    total_adds,
+    total_checkouts,
+    abandonment_rate,
+    recent_revenue
+  FROM iceberg.ecommerce.live_cart_metrics
+  ORDER BY window_end DESC
+  LIMIT 20
+`;
+const metricsResults = await trinoClient.query(metricsQuery);
+```
 
 ![Ecommerce Full Demo](file:///Users/sindhujarao/.gemini/antigravity/brain/54e1540c-36d5-490c-8a2e-d135dd139f7f/ecommerce_funnel_dashboard_1772140343968.webp)
 
