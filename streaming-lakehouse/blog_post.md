@@ -14,6 +14,8 @@ Here is my experience building a dual-use-case streaming system on a laptop. All
 
 ## What are we going to build?
 
+![Architecture Diagram](assets/architecture_diagram.png)
+
 We are setting up a state-of-the-art streaming lakehouse with:
 *   [**MinIO**](https://min.io/): S3-compatible backend storage.
 *   [**Apache Iceberg**](https://iceberg.apache.org/): The open table format (specifically V2 for row-level mutations).
@@ -50,11 +52,23 @@ Let's dive into the core components that these agents helped me build.
 
 ## The Storage Layer: MinIO & REST Catalog
 
+<p align="center">
+  <img src="https://min.io/resources/img/logo/MINIO_wordmark.png" height="50"/>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="https://iceberg.apache.org/img/Iceberg-logo.png" height="50"/>
+</p>
+
 The foundation of the lakehouse is object storage. The `docker-compose.yml` spins up a MinIO container (`localhost:9000`) and provisions a `lakehouse` bucket. 
 
 To manage Iceberg metadata concurrently, instead of a Hive Metastore, I opted for the modern **Iceberg REST Catalog**, backed by a lightweight PostgreSQL database. Trino and Flink are both configured to point to this REST API (`http://iceberg-rest:8181`), completely decoupling storage from compute and metadata.
 
 ## The Stream Processor: Flink + Kafka
+
+<p align="center">
+  <img src="https://flink.apache.org/img/logo/png/100/flink_squirrel_100_color.png" height="50"/>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="https://kafka.apache.org/images/logo.png" height="50"/>
+</p>
 
 This is where the magic happens. Python producers (`ecommerce_producer.py` and `ride_hailing_producer.py`) continuously pelt Kafka with JSON events. 
 
@@ -82,6 +96,10 @@ FROM TABLE(
 
 ## The Query Engine: Trino
 
+<p align="center">
+  <img src="https://trino.io/assets/images/logo_primary.png" height="50"/>
+</p>
+
 Trino sits directly over the Iceberg metadata. We configured the Trino catalog `iceberg.properties` to connect to the REST catalog and MinIO.
 
 ```properties
@@ -97,11 +115,19 @@ Trino allows us to perform massive parallel queries. It serves as the single sou
 
 ## The Transformation Layer: dbt
 
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Dbt-logo.svg/512px-Dbt-logo.svg.png" height="50"/>
+</p>
+
 For downstream analytics (like calculating daily driver payouts or executive revenue reports), we utilize **dbt**. 
 
 Running our `/run_dbt_transformations` skill executes models against the Trino engine, applying Write-Audit-Publish patterns to ensure the raw streams are filtered, sanitized, and aggregated accurately for the business layer.
 
 ## The Live Frontend: Vite & React
+
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/512px-React-icon.svg.png" height="50"/>
+</p>
 
 Finally, we used the `/generate_usecase_dashboard` skill to construct a modern React application.
 
