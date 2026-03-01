@@ -30,7 +30,7 @@ We are setting up a state-of-the-art streaming lakehouse with:
 Instead of static sample data, I wanted simulated, chaotic real-world streams. I built two pipelines:
 1.  **Ride-Hailing Telemetry**: Simulating Uber/Lyft. Thousands of driver and rider pings flowing in. Flink performs **Stateful Interval Joins** to match rides, and **Sliding (Hopping) Windows** to calculate live Surge Pricing multipliers.
     
-    ![Ride Hailing Map Overlay](assets/ride_hailing_case.png)
+    ![Ride Hailing Map Overlay](assets/ride_sharing_detailed.png)
 
 2.  **E-Commerce Funnel**: Tracking live user sessions, executing windowed aggregations to calculate real-time **Cart Abandonment Rates** and revenue.
     
