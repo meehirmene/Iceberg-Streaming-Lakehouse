@@ -58,7 +58,7 @@ Finally, we brought the data to life using a modern **Vite + React** web applica
 #### E-Commerce Funnel Demo
 We also built a secondary pipeline for **Real-Time E-Commerce Cart Abandonment** tracking. It processes high-volume `add_to_cart` and `checkout` events, computing live abandonment rates and recent revenue streams on-the-fly via Flink and Iceberg.
 
-![Live E-Commerce Funnel](file:///Users/sindhujarao/.gemini/antigravity/brain/54e1540c-36d5-490c-8a2e-d135dd139f7f/ecommerce_funnel_dashboard_1772140343968.webp)
+![Live E-Commerce Funnel](./assets/ecommerce_funnel_dashboard.webp)
 
 ## Getting Started
 
