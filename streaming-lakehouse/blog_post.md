@@ -14,7 +14,7 @@ Here is my experience building a dual-use-case streaming system on a laptop. All
 
 ## What are we going to build?
 
-![Architecture Diagram](assets/architecture_diagram.png)
+![Architecture Diagram](file:///Users/sindhujarao/.gemini/antigravity/brain/54e1540c-36d5-490c-8a2e-d135dd139f7f/lakehouse_architecture_1772323708208.png)
 
 We are setting up a state-of-the-art streaming lakehouse with:
 *   [**MinIO**](https://min.io/): S3-compatible backend storage.
@@ -29,7 +29,12 @@ We are setting up a state-of-the-art streaming lakehouse with:
 ### The Dual Use-Cases
 Instead of static sample data, I wanted simulated, chaotic real-world streams. I built two pipelines:
 1.  **Ride-Hailing Telemetry**: Simulating Uber/Lyft. Thousands of driver and rider pings flowing in. Flink performs **Stateful Interval Joins** to match rides, and **Sliding (Hopping) Windows** to calculate live Surge Pricing multipliers.
+    
+    ![Ride Hailing Map Overlay](file:///Users/sindhujarao/.gemini/antigravity/brain/54e1540c-36d5-490c-8a2e-d135dd139f7f/ride_hailing_case_1772323719898.png)
+
 2.  **E-Commerce Funnel**: Tracking live user sessions, executing windowed aggregations to calculate real-time **Cart Abandonment Rates** and revenue.
+    
+    ![E-Commerce Tracking Concept](file:///Users/sindhujarao/.gemini/antigravity/brain/54e1540c-36d5-490c-8a2e-d135dd139f7f/ecommerce_case_1772323731066.png)
 
 ---
 
